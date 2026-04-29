@@ -89,6 +89,15 @@ function install_gemos() {
         echo -e "${RED}[!!] Could not reach mirrors. Check internet connection.${NC}"
         return 1
     fi
+    echo -e "[*] Applying sparse expansion..."
+    qemu-img resize "$DISK_IMG" +10G
+
+    # 5. Tailoring / Customization
+    echo -e "${BLUE}[?] Type custom hostname for gemOS (Enter to skip):${NC} "
+    read -r hostname
+    if [[ -n "$hostname" ]]; then
+        echo -e "${CYAN}[*] Identity assigned: $hostname${NC}"
+    fi
     
     # Create the boot command wrapper
     echo -e "[*] Configuring Bootloader..."
@@ -98,17 +107,21 @@ function install_gemos() {
 #!/bin/bash
 ARCH=\$(uname -m)
 PORT=$RAND_PORT
-echo "[*] gemOS booting on local port \$PORT (SSH)..."
+echo -e "${CYAN}[*] gemOS booting (Serial Console Active)...${NC}"
+echo -e "${BLUE}[i] Access SSH via localhost:\$PORT after boot completes.${NC}"
+
 if [[ "\$ARCH" == "aarch64" ]]; then
-    qemu-system-aarch64 -m 2G -smp 2 -machine virt -cpu max \\
+    qemu-system-aarch64 -m 1G -smp 2 -machine virt -cpu max \\
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
         -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \\
-        -nographic
+        -nographic -serial mon:stdio \\
+        -append "console=ttyS0 root=/dev/vda1 rw"
 else
-    qemu-system-x86_64 -m 2G -smp 2 -cpu qemu64 \\
+    qemu-system-x86_64 -m 1G -smp 2 -cpu qemu64 \\
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
         -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \\
-        -nographic
+        -nographic -serial mon:stdio \\
+        -append "console=ttyS0 root=/dev/vda1 rw"
 fi
 EOF
     chmod +x "$GEMOS_DIR/boot.sh"
