@@ -8,24 +8,19 @@ import { Copy, Terminal as TerminalIcon, Github, Check, ChevronRight } from 'luc
 
 const STEPS = [
   {
-    name: "Install QEMU",
-    desc: "Set up the virtualization layer and required utilities.",
-    cmd: "pkg update && pkg install qemu-system-aarch64-headless qemu-utils wget -y"
+    name: "Prepare Environment",
+    desc: "Update Termux packages and install basics.",
+    cmd: "pkg update && pkg install wget -y"
   },
   {
-    name: "Provision Debian",
-    desc: "Download the official Debian 12 ARM64 cloud image (optimized for performance).",
-    cmd: "wget https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-arm64.qcow2 -O gemos.qcow2"
+    name: "Deploy gemOS",
+    desc: "Download and execute the secure bootstrap script from the repository.",
+    cmd: "wget -qO setup.sh https://raw.githubusercontent.com/FrederickBizzardo/gemos-novo/main/setup.sh && chmod +x setup.sh && ./setup.sh"
   },
   {
-    name: "Generate Kernel Boot",
-    desc: "Create the virtual BIOS configuration for rootless execution.",
-    cmd: "cat << EOF > boot_gemos.sh\nqemu-system-aarch64 -m 1G -smp 4 -machine virt -cpu max -drive file=gemos.qcow2,if=virtio -nographic -append \"console=ttyS0\"\nEOF"
-  },
-  {
-    name: "Launch gemOS",
-    desc: "Boot into your persistent Debian environment.",
-    cmd: "bash boot_gemos.sh"
+    name: "Access System",
+    desc: "Enter 'gemos' in your terminal any time to launch the virtual environment.",
+    cmd: "gemos"
   }
 ];
 

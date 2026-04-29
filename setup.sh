@@ -31,14 +31,31 @@ function animate_gem() {
 function show_banner() {
     echo -e "${BLUE}"
     cat << "EOF"
-   ____                      ___  ____ 
-  / ___| ___ _ __ ___   ___ / _ \/ ___|
- | |  _ / _ \ '_ ` _ \ / _ \ | | \___ \
- | |_| |  __/ | | | | | (_) | |_| |___) |
-  \____|\___|_| |_| |_|\___/ \___/|____/ 
+   ____                  ___  ____ 
+  / ___| ___ _ __ ___   / _ \/ ___|
+ | |  _ / _ \ '_ ` _ \  | | \___ \
+ | |_| |  __/ | | | | | | |_| |___)|
+  \____|\___|_| |_| |_| \___/|____/ 
       DEBIAN CORE | ROOTLESS KERNEL
 EOF
     echo -e "${NC}"
+}
+
+function download_with_fallback() {
+    local target=$1
+    shift
+    local urls=("$@")
+    
+    for url in "${urls[@]}"; do
+        echo -e "[*] Attempting download from: ${url}"
+        if wget -q --show-progress -O "$target" "$url"; then
+            echo -e "${GREEN}[+] Download successful.${NC}"
+            return 0
+        else
+            echo -e "${RED}[!] Download failed. Trying next mirror...${NC}"
+        fi
+    done
+    return 1
 }
 
 function install_gemos() {
@@ -50,14 +67,24 @@ function install_gemos() {
     cd "$GEMOS_DIR"
 
     ARCH=$(uname -m)
+    local urls=()
     if [[ "$ARCH" == "aarch64" ]]; then
-        URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-arm64.qcow2"
+        urls=(
+            "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-arm64.qcow2"
+            "https://cloud.debian.org/images/cloud/bookworm/20231013-1533/debian-12-nocloud-arm64.qcow2"
+        )
     else
-        URL="https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2"
+        urls=(
+            "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2"
+            "https://cloud.debian.org/images/cloud/bookworm/20231013-1533/debian-12-nocloud-amd64.qcow2"
+        )
     fi
 
-    echo -e "[*] Fetching Minimal Debian-Core (Under 200MB)..."
-    wget -q --show-progress -O "$DISK_IMG" "$URL"
+    echo -e "[*] Fetching Minimal Debian-Core (200MB - 350MB)..."
+    if ! download_with_fallback "$DISK_IMG" "${urls[@]}"; then
+        echo -e "${RED}[!!] All download mirrors failed. Please check your internet connection.${NC}"
+        return 1
+    fi
     
     # Create the boot command wrapper
     echo -e "[*] Configuring Bootloader..."
@@ -65,12 +92,12 @@ function install_gemos() {
 #!/bin/bash
 ARCH=\$(uname -m)
 if [[ "\$ARCH" == "aarch64" ]]; then
-    qemu-system-aarch64 -m 1G -smp 2 -machine virt -cpu max \\
+    qemu-system-aarch64 -m 10G -smp 2 -machine virt -cpu max \\
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
         -net nic,model=virtio -net user,hostfwd=tcp::2222-:22 \\
         -nographic
 else
-    qemu-system-x86_64 -m 1G -smp 2 -cpu qemu64 \\
+    qemu-system-x86_64 -m 10G -smp 2 -cpu qemu64 \\
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
         -net nic,model=virtio -net user,hostfwd=tcp::2222-:22 \\
         -nographic
@@ -85,8 +112,13 @@ bash $GEMOS_DIR/setup.sh
 EOF
     chmod +x $PREFIX/bin/gemos
 
-    # Back up script
-    cp "$0" "$GEMOS_DIR/setup.sh"
+    # Back up script - handling different invocation methods
+    if [ -f "$0" ]; then
+        cp "$0" "$GEMOS_DIR/setup.sh"
+    else
+        echo -e "[*] Redownloading setup.sh for persistence..."
+        wget -q -O "$GEMOS_DIR/setup.sh" "https://raw.githubusercontent.com/FrederickBizzardo/gemos-novo/main/setup.sh"
+    fi
     chmod +x "$GEMOS_DIR/setup.sh"
     
     echo -e "${GREEN}[+] gemOS Installation Complete.${NC}"
