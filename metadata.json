@@ -1,0 +1,6 @@
+{
+  "name": "gemOS Terminal Hub",
+  "description": "Ultra-lightweight Linux-based virtual OS environment for Termux. Features animated ASCII gem logo, custom CLI, and optimized QEMU bootstrapping scripts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
