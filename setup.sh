@@ -89,15 +89,13 @@ function install_gemos() {
         echo -e "${RED}[!!] Could not reach mirrors. Check internet connection.${NC}"
         return 1
     fi
-    echo -e "[*] Applying sparse expansion..."
+    echo -e "[*] Applying sparse expansion (+10GB)..."
     qemu-img resize "$DISK_IMG" +10G
 
     # 5. Tailoring / Customization
-    echo -e "${BLUE}[?] Type custom hostname for gemOS (Enter to skip):${NC} "
-    read -r hostname
-    if [[ -n "$hostname" ]]; then
-        echo -e "${CYAN}[*] Identity assigned: $hostname${NC}"
-    fi
+    echo -e "${BLUE}[?] Enter a custom hostname for gemOS (Enter to skip):${NC} "
+    read -r ghostname
+    ghostname=${ghostname:-gemOS-Kernel}
     
     # Create the boot command wrapper
     echo -e "[*] Configuring Bootloader..."
@@ -107,18 +105,23 @@ function install_gemos() {
 #!/bin/bash
 ARCH=\$(uname -m)
 PORT=$RAND_PORT
-echo -e "${CYAN}[*] gemOS booting (Serial Console)...${NC}"
-echo -e "${BLUE}[i] SSH Port: \$PORT (User: root)${NC}"
+EFI_AARCH64="/data/data/com.termux/files/usr/share/qemu/edk2-aarch64-code.fd"
+
+echo -e "${CYAN}[*] gemOS Lattice booting ($ghostname)...${NC}"
+echo -e "${BLUE}[!] Booting on port \$PORT. Emulator: QEMU TCG.${NC}"
+echo -e "${YELLOW}[i] If boot hangs, press Ctrl+A then X to exit.${NC}"
 
 if [[ "\$ARCH" == "aarch64" ]]; then
-    # We remove -append because it requires -kernel. 
-    # Cloud images rely on the internal bootloader for console settings.
-    qemu-system-aarch64 -m 2G -smp 2 -machine virt -cpu max \
+    BIOS_ARG=""
+    if [ -f "\$EFI_AARCH64" ]; then BIOS_ARG="-bios \$EFI_AARCH64"; fi
+    
+    qemu-system-aarch64 -m 1G -smp 2 -machine virt -cpu max \
+        \$BIOS_ARG \
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \
         -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \
         -nographic -serial mon:stdio
 else
-    qemu-system-x86_64 -m 2G -smp 2 -cpu qemu64 \
+    qemu-system-x86_64 -m 1G -smp 2 -cpu qemu64 \
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \
         -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \
         -nographic -serial mon:stdio
