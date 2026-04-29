@@ -48,11 +48,13 @@ function download_with_fallback() {
     
     for url in "${urls[@]}"; do
         echo -e "[*] Attempting download from: ${url}"
-        if wget -q --show-progress -O "$target" "$url"; then
+        # Use -c to resume and --timeout to avoid hanging
+        if wget -c -q --show-progress --timeout=15 -O "$target" "$url"; then
             echo -e "${GREEN}[+] Download successful.${NC}"
             return 0
         else
-            echo -e "${RED}[!] Download failed. Trying next mirror...${NC}"
+            echo -e "${RED}[!] Mirror failed or timed out. Trying fallback...${NC}"
+            rm -f "$target"
         fi
     done
     return 1
@@ -69,37 +71,43 @@ function install_gemos() {
     ARCH=$(uname -m)
     local urls=()
     if [[ "$ARCH" == "aarch64" ]]; then
+        # Minimal Nocloud ARM64 (~180MB - 240MB)
         urls=(
             "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-arm64.qcow2"
-            "https://cloud.debian.org/images/cloud/bookworm/20231013-1533/debian-12-nocloud-arm64.qcow2"
+            "https://cloud.debian.org/images/cloud/bookworm/daily/latest/debian-12-nocloud-arm64-daily.qcow2"
         )
     else
+        # Minimal Nocloud x86_64 (~190MB - 260MB)
         urls=(
             "https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2"
-            "https://cloud.debian.org/images/cloud/bookworm/20231013-1533/debian-12-nocloud-amd64.qcow2"
+            "https://cloud.debian.org/images/cloud/bookworm/daily/latest/debian-12-nocloud-amd64-daily.qcow2"
         )
     fi
 
-    echo -e "[*] Fetching Minimal Debian-Core (200MB - 350MB)..."
+    echo -e "[*] Fetching Optimized Debian-Core (Target: <300MB)..."
     if ! download_with_fallback "$DISK_IMG" "${urls[@]}"; then
-        echo -e "${RED}[!!] All download mirrors failed. Please check your internet connection.${NC}"
+        echo -e "${RED}[!!] Could not reach mirrors. Check internet connection.${NC}"
         return 1
     fi
     
     # Create the boot command wrapper
     echo -e "[*] Configuring Bootloader..."
+    # Dynamically find an open port to avoid 'Could not set up host forwarding rule' errors
+    RAND_PORT=$((RANDOM % 1000 + 2222))
     cat << EOF > "$GEMOS_DIR/boot.sh"
 #!/bin/bash
 ARCH=\$(uname -m)
+PORT=$RAND_PORT
+echo "[*] gemOS booting on local port \$PORT (SSH)..."
 if [[ "\$ARCH" == "aarch64" ]]; then
-    qemu-system-aarch64 -m 10G -smp 2 -machine virt -cpu max \\
+    qemu-system-aarch64 -m 2G -smp 2 -machine virt -cpu max \\
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
-        -net nic,model=virtio -net user,hostfwd=tcp::2222-:22 \\
+        -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \\
         -nographic
 else
-    qemu-system-x86_64 -m 10G -smp 2 -cpu qemu64 \\
+    qemu-system-x86_64 -m 2G -smp 2 -cpu qemu64 \\
         -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
-        -net nic,model=virtio -net user,hostfwd=tcp::2222-:22 \\
+        -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \\
         -nographic
 fi
 EOF
@@ -108,15 +116,14 @@ EOF
     # Link to global bin
     cat << EOF > $PREFIX/bin/gemos
 #!/bin/bash
-bash $GEMOS_DIR/setup.sh
+bash $GEMOS_DIR/setup.sh \$@
 EOF
     chmod +x $PREFIX/bin/gemos
 
-    # Back up script - handling different invocation methods
+    # Back up script
     if [ -f "$0" ]; then
         cp "$0" "$GEMOS_DIR/setup.sh"
     else
-        echo -e "[*] Redownloading setup.sh for persistence..."
         wget -q -O "$GEMOS_DIR/setup.sh" "https://raw.githubusercontent.com/FrederickBizzardo/gemos-novo/main/setup.sh"
     fi
     chmod +x "$GEMOS_DIR/setup.sh"
@@ -125,11 +132,16 @@ EOF
 }
 
 function uninstall_gemos() {
-    echo -e "${RED}[!] This will destroy the virtual drive.${NC}"
-    read -p "Confirm (y/N): " confirm
-    if [[ $confirm == [yY] ]]; then
-        rm -rf "$GEMOS_DIR" "$PREFIX/bin/gemos"
-        echo -e "${RED}[-] gemOS Purged.${NC}"
+    echo -e "${RED}[!] DANGER: This will delete ALL data and images.${NC}"
+    read -p "Type 'PURGE' to confirm: " confirm
+    if [[ "$confirm" == "PURGE" ]]; then
+        echo -e "[*] Purging $GEMOS_DIR..."
+        rm -rf "$GEMOS_DIR"
+        echo -e "[*] Removing global bin..."
+        rm -f "$PREFIX/bin/gemos"
+        echo -e "${GREEN}[-] gemOS has been completely wiped.${NC}"
+    else
+        echo "Operation cancelled."
     fi
 }
 
