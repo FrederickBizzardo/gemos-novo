@@ -13,14 +13,19 @@ interface TerminalLine {
 }
 
 const BOOT_LOGS = [
-  "[    0.000000] gemOS version 1.0.0-genie (root@termux) #1 SMP PREEMPT Wed Apr 29",
-  "[    0.000010] CPU: Virtual ARMv8 Processor (Cortex-A72) @ 2.4GHz",
-  "[    0.245000] mem: Initializing 512MB ultra-optimized workspace...",
-  "[    0.512000] vfs: Mounting gemOS overlay-fs (Termux bridge active)",
-  "[    0.800000] kernel: Sudo-without-root subsystem initialized via proot",
-  "[    1.200000] network: TUN/TAP interface bridged to Android hardware",
-  "[    1.500000] gemOS: Starting lightweight services (Docker enabled)",
-  "[    2.000000] gemOS: System ready. Welcome back, Architect."
+  "[    0.000000] Linux version 6.1.0-13-arm64 (debian-kernel@lists.debian.org)",
+  "[    0.000000] Command line: console=ttyS0 root=/dev/vda1 rw",
+  "[    0.102400] CPU: Virtual ARMv8 Processor (Cortex-A72) @ 2.4GHz",
+  "[    0.450000] virtio-pci 0000:00:01.0: using bar 0 for rng-virtio",
+  "[    0.890000] vda: vda1 vda2",
+  "[    1.200000] EXT4-fs (vda1): mounted filesystem with ordered data mode",
+  "[    1.500000] systemd[1]: Inserted module 'autofs4'",
+  "[    1.800000] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.",
+  "[    2.200000] Debian GNU/Linux 12 gemOS ttyS0",
+  "gemOS login: root (automatic login)",
+  "Linux gemOS 6.1.0-13-arm64 #1 SMP Debian 6.1.55-1",
+  "Last login: Wed Apr 29 15:42:00 2026",
+  "root@gemOS:~# _"
 ];
 
 export const Terminal: React.FC<{ themeColor: string }> = ({ themeColor }) => {
@@ -57,50 +62,49 @@ export const Terminal: React.FC<{ themeColor: string }> = ({ themeColor }) => {
 
     switch (trimmed) {
       case 'help':
-        newHistory.push({ text: 'Available commands:', type: 'output' });
-        newHistory.push({ text: '  sudo         - Run commands with virtual superuser privileges', type: 'output' });
-        newHistory.push({ text: '  docker ps    - Show active virtual containers', type: 'output' });
-        newHistory.push({ text: '  apt upgrade  - Fetch optimized binary updates', type: 'output' });
-        newHistory.push({ text: '  fix          - Auto-repair gemOS dependencies', type: 'output' });
-        newHistory.push({ text: '  install      - Show Termux bootstrap installation guide', type: 'output' });
-        newHistory.push({ text: '  clear        - Wipes current session screen', type: 'output' });
-        newHistory.push({ text: '  exit         - Close gemOS and return to Termux', type: 'output' });
+        newHistory.push({ text: 'gemOS (Debian Core) Commands:', type: 'output' });
+        newHistory.push({ text: '  sudo         - Escalate to superuser privileges', type: 'output' });
+        newHistory.push({ text: '  apt-get      - Debian package management tool', type: 'output' });
+        newHistory.push({ text: '  docker stats - Monitor container resource usage', type: 'output' });
+        newHistory.push({ text: '  systemctl    - Manage systemd services', type: 'output' });
+        newHistory.push({ text: '  fix          - Run fsck on the virtual drive', type: 'output' });
+        newHistory.push({ text: '  clear        - Clear terminal session', type: 'output' });
+        newHistory.push({ text: '  exit         - Shut down virtual kernel', type: 'output' });
         break;
       case 'clear':
         setHistory([]);
         return;
       case 'sudo':
       case 'sudo su':
-        newHistory.push({ text: '[sudo] password for user: ', type: 'output' });
-        newHistory.push({ text: 'Virtual root access granted. Environment is now super-privileged.', type: 'success' });
+        newHistory.push({ text: 'root@gemOS:~# ', type: 'success' });
+        newHistory.push({ text: 'Privilege escalation successful. Security mode: Permissive.', type: 'output' });
         break;
-      case 'docker ps':
-        newHistory.push({ text: 'CONTAINER ID   IMAGE          COMMAND                  STATUS          PORTS     NAMES', type: 'output' });
-        newHistory.push({ text: 'a8b7c6d5e4f3   alpine:latest  "/bin/sh"                Up 2 hours      -         gem_core', type: 'output' });
+      case 'docker stats':
+        newHistory.push({ text: 'CONTAINER ID   NAME       CPU %     MEM USAGE / LIMIT', type: 'output' });
+        newHistory.push({ text: 'a8b7c6d5e4f3   gem_core   0.05%     12.4MiB / 512MiB', type: 'output' });
         break;
-      case 'apt upgrade':
+      case 'apt-get update':
+      case 'apt update':
+        newHistory.push({ text: 'Hit:1 http://deb.debian.org/debian bookworm InRelease', type: 'output' });
         newHistory.push({ text: 'Reading package lists... Done', type: 'output' });
-        newHistory.push({ text: 'Building dependency tree... Done', type: 'output' });
-        newHistory.push({ text: 'gemOS is already at the latest bleeding-edge version.', type: 'success' });
         break;
-      case 'install':
-        newHistory.push({ text: 'GEMOS INSTALLATION SCRIPT (Copy to Termux):', type: 'system' });
-        newHistory.push({ text: 'curl -sL https://gemos.io/setup | bash', type: 'success' });
-        newHistory.push({ text: 'Estimated setup time: 45 seconds (Ultra-optimized)', type: 'output' });
+      case 'systemctl status':
+        newHistory.push({ text: '● gemOS-core.service - Core System Logic', type: 'success' });
+        newHistory.push({ text: '   Active: active (running) since Wed 2026-04-29', type: 'output' });
         break;
       case 'exit':
-        newHistory.push({ text: 'Terminating gemOS virtual layer...', type: 'error' });
-        newHistory.push({ text: 'Exiting to Termux. Secure session closed.', type: 'output' });
+        newHistory.push({ text: 'Sending SIGTERM to all processes...', type: 'error' });
+        newHistory.push({ text: 'kernel: Power down.', type: 'output' });
         setTimeout(() => window.location.reload(), 1000);
         break;
       case 'fix':
-        newHistory.push({ text: 'Running system integrity check...', type: 'output' });
-        newHistory.push({ text: 'Found 0 vulnerabilities. System is rock solid.', type: 'success' });
+        newHistory.push({ text: '[*] Checking /dev/vda1 (Debian Root FS)...', type: 'output' });
+        newHistory.push({ text: 'clean, 125432/625856 files, 1542341/2501376 blocks', type: 'success' });
         break;
       case '':
         break;
       default:
-        newHistory.push({ text: `gemOS: command not found: ${trimmed}`, type: 'error' });
+        newHistory.push({ text: `bash: ${trimmed}: command not found`, type: 'error' });
     }
 
     setHistory(newHistory);

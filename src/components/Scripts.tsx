@@ -8,54 +8,50 @@ import { Copy, Terminal as TerminalIcon, ShieldCheck, Power, RefreshCcw, Trash2 
 
 const SCRIPT_DATA = [
   {
-    title: "Boot gemOS (QEMU)",
+    title: "Primary Bootloader",
     id: "boot",
     icon: Power,
     color: "text-green-400",
-    desc: "Initializes the virtualized Linux kernel via QEMU with KVM-TCG bridging.",
+    desc: "Starts the QEMU x86_64 kernel with virtio acceleration.",
     code: `#!/bin/bash
-# gemOS Ultra-Lightweight Bootloader
-echo "[*] Spinning up gemOS Virtual Kernel..."
-qemu-system-x86_64 \\
-  -m 512M \\
-  -smp 2 \\
-  -kernel ./gemos-vmlinuz \\
-  -append "root=/dev/sda1 console=ttyS0" \\
-  -nographic \\
-  -drive file=gemos_root.img,format=raw \\
-  -net user,hostfwd=tcp::2222-:22 -net echo
-`
+qemu-system-x86_64 \
+  -m 512 -smp 2 \
+  -drive file=$HOME/gemOS/gemos_root.img,if=virtio \
+  -net nic,model=virtio \
+  -net user,hostfwd=tcp::2222-:22 \
+  -nographic -append "console=ttyS0"`
   },
   {
-    title: "Install Environment",
+    title: "Command Wrapper",
     id: "install",
     icon: TerminalIcon,
     color: "text-cyan-400",
-    desc: "Downloads the compressed gemOS image and required dependencies for Termux.",
+    desc: "Creates the global 'gemos' command in Termux bin.",
     code: `#!/bin/bash
-# gemOS Quick Installer
-pkg update && pkg upgrade -y
-pkg install qemu-system-x86-64-headless qemu-utils wget -y
-echo "[*] Downloading gemOS Optimized Image (145MB)..."
-wget -O gemos_root.img https://mirror.gemos.io/v1/stable/rootfs.img
-echo "[*] Downloading Kernel..."
-wget -O gemos-vmlinuz https://mirror.gemos.io/v1/stable/vmlinuz
-echo "[+] gemOS Ready to Boot."
-`
+# Install to $PREFIX/bin/gemos
+cat << 'EOF' > $PREFIX/bin/gemos
+#!/bin/bash
+case "$1" in
+  fix) qemu-img check $HOME/gemOS/gemos_root.img ;;
+  uninstall) rm -rf $HOME/gemOS $PREFIX/bin/gemos ;;
+  *) bash $HOME/gemOS/start_gemos.sh ;;
+esac
+EOF
+chmod +x $PREFIX/bin/gemos`
   },
   {
-    title: "System Fix / Reset",
-    id: "fix",
-    icon: RefreshCcw,
+    title: "Full Bootstrap",
+    id: "bootstrap",
+    icon: ShieldCheck,
     color: "text-yellow-400",
-    desc: "Cleans stale virtual sockets and re-syncs the system image file.",
+    desc: "The complete setup.sh script logic for one-click deployment.",
     code: `#!/bin/bash
-# gemOS Recovery Tool
-echo "[!] Attempting to repair virtual drive..."
-qemu-img check gemos_root.img
-rm -rf /tmp/qemu-*
-echo "[+] Repair sequence complete."
-`
+# gemOS All-in-One Installer
+pkg update && pkg upgrade -y
+pkg install qemu-system-x86-64-headless qemu-utils wget -y
+mkdir -p $HOME/gemOS && cd $HOME/gemOS
+wget -O gemos_root.img https://dl-cdn.alpinelinux.org/alpine/v3.18/releases/cloud/generic_alpine-3.18.4-x86_64-bios-tiny.qcow2
+# (Script continues with command linking...)`
   },
   {
     title: "Pure Uninstall",
@@ -65,8 +61,8 @@ echo "[+] Repair sequence complete."
     desc: "Completely wipes gemOS binaries and virtual disks from $HOME.",
     code: `#!/bin/bash
 # gemOS Wipe Script
-rm gemos_root.img gemos-vmlinuz
-pkg uninstall qemu-system-x86-64-headless -y
+rm -rf $HOME/gemOS
+rm $PREFIX/bin/gemos
 echo "[-] gemOS removed. Returning to stock Termux."
 `
   }

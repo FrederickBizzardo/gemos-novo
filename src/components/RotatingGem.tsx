@@ -54,39 +54,46 @@ const gemPoints = generateGemPoints();
 export const RotatingGem: React.FC = () => {
   const [rotation, setRotation] = useState(0);
   const size = 15;
-  const chars = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'];
+  const chars = [' ', '.', '·', '°', ':', '!', '*', '#', '$', '@'];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setRotation(prev => (prev + 0.05) % (Math.PI * 2));
-    }, 50);
+      setRotation(prev => (prev + 0.03) % (Math.PI * 2));
+    }, 40);
     return () => clearInterval(interval);
   }, []);
 
   const render = () => {
-    const width = 40;
-    const height = 20;
+    const width = 50;
+    const height = 25;
     const buffer = Array(width * height).fill(' ');
     const zBuffer = Array(width * height).fill(-Infinity);
 
     const cosR = Math.cos(rotation);
     const sinR = Math.sin(rotation);
+    const cosX = Math.cos(0.4); // Constant tilt
+    const sinX = Math.sin(0.4);
 
     gemPoints.forEach((p) => {
-      // Rotate around Y axis
-      let tx = p.x * cosR - p.z * sinR;
-      let tz = p.x * sinR + p.z * cosR;
+      // Rotation around Y
+      let ytx = p.x * cosR - p.z * sinR;
+      let ytz = p.x * sinR + p.z * cosR;
       
+      // Tilt around X
+      let ty = p.y * cosX - ytz * sinX;
+      let tz = p.y * sinX + ytz * cosX;
+
       // Project
-      const scale = 5;
-      const x = Math.floor(width / 2 + tx * scale);
-      const y = Math.floor(height / 2 + p.y * (scale * 0.8));
+      const scale = 6;
+      const x = Math.floor(width / 2 + ytx * scale);
+      const y = Math.floor(height / 2 + ty * (scale * 0.5));
 
       if (x >= 0 && x < width && y >= 0 && y < height) {
         const idx = y * width + x;
         if (tz > zBuffer[idx]) {
           zBuffer[idx] = tz;
-          const charIdx = Math.floor(((tz + 3) / 6) * (chars.length - 1));
+          const brightness = (tz + 4) / 8;
+          const charIdx = Math.floor(brightness * (chars.length - 1));
           buffer[idx] = chars[Math.max(0, Math.min(chars.length - 1, charIdx))];
         }
       }
