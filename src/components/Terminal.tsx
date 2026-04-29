@@ -14,17 +14,14 @@ interface TerminalLine {
 
 const BOOT_LOGS = [
   "[    0.000000] Linux version 6.1.0-13-arm64 (debian-kernel@lists.debian.org)",
-  "[    0.000000] Command line: console=ttyS0 root=/dev/vda1 rw",
-  "[    0.102400] CPU: Virtual ARMv8 Processor (Cortex-A72) @ 2.4GHz",
+  "[    0.000000] BIOS: QEMU-virt-aarch64 v6.1",
+  "[*] gemOS booting (Serial Console)...",
+  "[i] SSH Port: 3027 (User: root)",
   "[    0.450000] virtio-pci 0000:00:01.0: using bar 0 for rng-virtio",
   "[    0.890000] vda: vda1 vda2",
-  "[    1.200000] EXT4-fs (vda1): mounted filesystem with ordered data mode",
-  "[    1.500000] systemd[1]: Inserted module 'autofs4'",
-  "[    1.800000] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.",
+  "[    1.500000] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.",
   "[    2.200000] Debian GNU/Linux 12 gemOS ttyS0",
-  "gemOS login: root (automatic login)",
-  "Linux gemOS 6.1.0-13-arm64 #1 SMP Debian 6.1.55-1",
-  "Last login: Wed Apr 29 15:42:00 2026",
+  "gemOS login: root",
   "root@gemOS:~# _"
 ];
 

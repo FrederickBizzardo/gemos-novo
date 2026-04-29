@@ -107,21 +107,21 @@ function install_gemos() {
 #!/bin/bash
 ARCH=\$(uname -m)
 PORT=$RAND_PORT
-echo -e "${CYAN}[*] gemOS booting (Serial Console Active)...${NC}"
-echo -e "${BLUE}[i] Access SSH via localhost:\$PORT after boot completes.${NC}"
+echo -e "${CYAN}[*] gemOS booting (Serial Console)...${NC}"
+echo -e "${BLUE}[i] SSH Port: \$PORT (User: root)${NC}"
 
 if [[ "\$ARCH" == "aarch64" ]]; then
-    qemu-system-aarch64 -m 1G -smp 2 -machine virt -cpu max \\
-        -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
-        -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \\
-        -nographic -serial mon:stdio \\
-        -append "console=ttyS0 root=/dev/vda1 rw"
+    # We remove -append because it requires -kernel. 
+    # Cloud images rely on the internal bootloader for console settings.
+    qemu-system-aarch64 -m 2G -smp 2 -machine virt -cpu max \
+        -drive file=$DISK_IMG,if=virtio,format=qcow2 \
+        -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \
+        -nographic -serial mon:stdio
 else
-    qemu-system-x86_64 -m 1G -smp 2 -cpu qemu64 \\
-        -drive file=$DISK_IMG,if=virtio,format=qcow2 \\
-        -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \\
-        -nographic -serial mon:stdio \\
-        -append "console=ttyS0 root=/dev/vda1 rw"
+    qemu-system-x86_64 -m 2G -smp 2 -cpu qemu64 \
+        -drive file=$DISK_IMG,if=virtio,format=qcow2 \
+        -net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:\$PORT-:22 \
+        -nographic -serial mon:stdio
 fi
 EOF
     chmod +x "$GEMOS_DIR/boot.sh"
@@ -133,9 +133,10 @@ bash $GEMOS_DIR/setup.sh \$@
 EOF
     chmod +x $PREFIX/bin/gemos
 
-    # Back up script
-    if [ -f "$0" ]; then
-        cp "$0" "$GEMOS_DIR/setup.sh"
+    # Back up script - Using realpath for persistence
+    ORIGINAL_SCRIPT=$(realpath "$0" 2>/dev/null || echo "$0")
+    if [ -f "$ORIGINAL_SCRIPT" ]; then
+        cp "$ORIGINAL_SCRIPT" "$GEMOS_DIR/setup.sh"
     else
         wget -q -O "$GEMOS_DIR/setup.sh" "https://raw.githubusercontent.com/FrederickBizzardo/gemos-novo/main/setup.sh"
     fi
