@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # GEMOS - AI Studio App
 
 Your AI-powered studio application powered by Google Gemini API.
@@ -77,9 +73,8 @@ Your AI-powered studio application powered by Google Gemini API.
 
 ## Additional Resources
 
-- View your projects in AI Studio: https://ai.studio/apps/b1fb7ab5-dae6-40d4-a02c-e4d9c75d962e
 - [Google Gemini API Documentation](https://ai.google.dev/)
 
 ## License
 
-[Add your license information here]
+MIT License
