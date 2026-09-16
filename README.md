@@ -1,6 +1,10 @@
-# GEMOS - AI Studio App
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-Your AI-powered studio application powered by Google Gemini API.
+# GEM oS - Linux Distro for Termux
+
+GEM oS is a lightweight, customizable Linux distribution designed specifically for Termux. It provides a complete Linux environment with essential tools, development utilities, and system packages, enabling users to run a full-featured operating system experience on their Android devices.
 
 ## Getting Started
 
